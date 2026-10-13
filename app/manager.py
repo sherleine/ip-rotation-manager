@@ -1,8 +1,5 @@
 """Coordinates health checks, selection, bounded retries, and request metrics."""
-from app.config import (
-    HOST, TARGET_HOSTNAME, TARGET_PORT, MAX_RETRIES_PER_REQUEST,
-    MAX_CONSECUTIVE_FAILURES,
-)
+from app.config import TARGET_HOSTNAME, TARGET_PORT, MAX_RETRIES_PER_REQUEST
 from app.health_checker import check_proxy
 from app.models import ProxyState
 from app.request_client import get_via_proxy
@@ -21,7 +18,7 @@ class ProxyManager:
         return f"http://{TARGET_HOSTNAME}:{TARGET_PORT}"
 
     def refresh_health(self):
-        print("\nHealth check:")
+        print("\\nHealth check:")
         for proxy in self.proxies:
             ok = check_proxy(proxy)
             state = "HEALTHY" if ok else "UNHEALTHY"
@@ -30,7 +27,7 @@ class ProxyManager:
         print()
 
     def request(self, path="/"):
-        """Make one request, retrying other healthy endpoints at most N times."""
+        """Make one request and try each eligible proxy at most once."""
         self.request_number += 1
         request_id = self.request_number
         url = self.target_url + path
@@ -52,7 +49,6 @@ class ProxyManager:
             tried.add(proxy.name)
             try:
                 status, body, proxy_header = get_via_proxy(proxy, url)
-                # HTTP 4xx is a target response, not automatically a proxy failure.
                 self.events.append({
                     "request_id": request_id,
                     "attempt": attempt_number,
@@ -66,6 +62,7 @@ class ProxyManager:
                     f"{proxy.name} -> HTTP {status}; "
                     f"proxy header={proxy_header or 'not supplied'}"
                 )
+                # An HTTP 4xx/5xx response is not automatically a proxy transport failure.
                 return status, body
             except Exception as exc:
                 last_error = f"{type(exc).__name__}: {exc}"
@@ -83,10 +80,12 @@ class ProxyManager:
                     f"{proxy.name} failed: {last_error}"
                 )
 
-        raise RuntimeError(f"Request {request_id} could not be completed. Last error: {last_error}")
+        raise RuntimeError(
+            f"Request {request_id} could not be completed. Last error: {last_error}"
+        )
 
     def print_summary(self):
-        print("\nProxy summary")
+        print("\\nProxy summary")
         print("-" * 72)
         print(f"{'Name':10} {'Status':12} {'Checks':>7} {'Success %':>10} {'Failures':>9}")
         for proxy in self.proxies:
@@ -96,5 +95,5 @@ class ProxyManager:
                 f"{proxy.success_rate:9.1f}% {proxy.consecutive_failures:9}"
             )
         successful = sum(1 for event in self.events if event.get("transport_ok"))
-        print(f"\nRequests attempted: {self.request_number}")
+        print(f"\\nRequests attempted: {self.request_number}")
         print(f"Successful transport attempts: {successful}")
