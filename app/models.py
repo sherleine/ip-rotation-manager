@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from time import time
 from typing import Optional
+from urllib.parse import quote
 
 
 @dataclass
@@ -18,10 +19,18 @@ class ProxyState:
     last_error: Optional[str] = None
     disabled: bool = False
     cooldown_until: Optional[float] = None
+    scheme: str = "http"
+    username: Optional[str] = None
+    password: Optional[str] = None
 
     @property
     def url(self) -> str:
-        return f"http://{self.host}:{self.port}"
+        """Return the proxy URL, percent-encoding optional credentials."""
+        host = f"[{self.host}]" if ":" in self.host and not self.host.startswith("[") else self.host
+        credentials = ""
+        if self.username is not None and self.password is not None:
+            credentials = f"{quote(self.username, safe='')}:{quote(self.password, safe='')}@"
+        return f"{self.scheme}://{credentials}{host}:{self.port}"
 
     @property
     def success_rate(self) -> float:
