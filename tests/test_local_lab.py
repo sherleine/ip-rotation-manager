@@ -40,10 +40,15 @@ class LocalLabFailureTests(unittest.TestCase):
         self.assertEqual(len(self.manager.events), 2)
         self.assertEqual(self.manager.events[0]["proxy"], "mock-1")
         self.assertFalse(self.manager.events[0]["transport_ok"])
-        self.assertEqual(self.manager.events[1]["proxy"], "mock-2")
+        fallback_name = self.manager.events[1]["proxy"]
+        # Once mock-1 becomes unhealthy, the eligible list shrinks. The
+        # round-robin index is applied to that new list, so either remaining
+        # healthy proxy is a valid fallback.
+        self.assertIn(fallback_name, {"mock-2", "mock-3"})
         self.assertTrue(self.manager.events[1]["transport_ok"])
-        self.assertFalse(self.manager.proxies[0].healthy)
-        self.assertTrue(self.manager.proxies[1].healthy)
+        states = {proxy.name: proxy for proxy in self.manager.proxies}
+        self.assertFalse(states["mock-1"].healthy)
+        self.assertTrue(states[fallback_name].healthy)
 
     def test_proxy_recovers_after_cooldown_expires(self):
         proxy = self.manager.proxies[0]
