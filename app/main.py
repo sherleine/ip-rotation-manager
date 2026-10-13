@@ -8,6 +8,7 @@ from app.config import HOST, PROXY_PORTS
 from app.local_lab import start_lab, stop_lab, set_mock_proxy_available
 from app.manager import ProxyManager
 from app.models import ProxyState
+from app.proxy_config import load_proxy_definitions, masked_proxy_url
 
 
 def _make_proxies():
@@ -139,13 +140,29 @@ def run_history(limit=20):
         manager.close()
 
 
+def run_config_check():
+    """Validate environment proxy settings without contacting any endpoint."""
+    try:
+        proxies = load_proxy_definitions()
+    except ValueError as exc:
+        raise SystemExit(f"Invalid proxy configuration: {exc}") from exc
+
+    using_local_defaults = "IPRM_PROXY_COUNT" not in __import__("os").environ
+    mode = "local mock defaults" if using_local_defaults else "environment configuration"
+    print(f"Proxy configuration is valid ({mode}).")
+    print("Credentials are configured only in environment variables and are not displayed.")
+    for proxy in proxies:
+        print(f"  {proxy.name:10} {masked_proxy_url(proxy)}")
+    print("\nThis command validates configuration only; it does not connect to proxies.")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Local IP rotation/proxy-management learning MVP"
     )
     parser.add_argument(
         "command",
-        choices=["demo", "demo-failover", "status", "health-check", "history"],
+        choices=["demo", "demo-failover", "status", "health-check", "history", "config-check"],
         help="Run a demo, inspect saved status/history, or actively check local mock proxies",
     )
     args = parser.parse_args()
@@ -159,6 +176,8 @@ def main():
         run_health_check()
     elif args.command == "history":
         run_history()
+    elif args.command == "config-check":
+        run_config_check()
 
 
 if __name__ == "__main__":
