@@ -8,6 +8,7 @@ A Python CLI project for learning proxy selection, health monitoring, failover, 
 - Health-aware round-robin selection and bounded failover.
 - SQLite persistence for proxy health state and request-attempt history.
 - Recovery cooldown: a proxy with repeated failures is temporarily excluded from health checks and requests, then rechecked after the cooldown expires.
+- CLI commands to inspect saved status, run active health checks, and review recent request attempts.
 - Unit tests for selection, health state, persistence, transport failover, and cooldown recovery.
 - A `demo-failover` command that simulates a mock proxy dropping connections and demonstrates automatic failover.
 - Python standard library only; no pip packages required.
@@ -23,10 +24,30 @@ A Python CLI project for learning proxy selection, health monitoring, failover, 
 ## Run on Windows PowerShell
 
 ```powershell
+# Run the regular local demo (checks proxies and sends six requests)
 py -m app.main demo
+
+# Simulate one mock proxy failing and observe failover
 py -m app.main demo-failover
+
+# Display last saved proxy health, latency, failure count, and cooldown
+py -m app.main status
+
+# Start the localhost lab and actively check proxy health
+py -m app.main health-check
+
+# Show the latest saved request attempts
+py -m app.main history
+
+# Run all tests
 py -m unittest discover -s tests -v
 ```
+
+### What the new commands mean
+
+- `status` displays the **last saved result**. It does not contact the proxies, so use `health-check` to test them now.
+- `health-check` starts the local test lab, checks the mock proxies, saves results, and then stops the lab.
+- `history` displays recent request attempts saved in SQLite. It may be empty until you run `demo`.
 
 The default SQLite database is created at `data/proxy_manager.sqlite3`. It is safe to remove this file when you want to reset the demo's saved history. Do not delete it while the application is running.
 
@@ -53,6 +74,7 @@ app/
   selector.py
 tests/
   test_database.py
+  test_local_lab.py
   test_manager.py
   test_models.py
   test_selector.py
