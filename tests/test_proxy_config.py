@@ -22,7 +22,7 @@ class ProxyConfigTests(unittest.TestCase):
         self.assertEqual(proxies[0].password, "p@ss:/word")
         self.assertEqual(
             proxies[0].url,
-            "http://user%20name:p%40ss%3A/word@proxy.example.test:8080",
+            "http://user%20name:p%40ss%3A%2Fword@proxy.example.test:8080",
         )
         self.assertEqual(masked_proxy_url(proxies[0]), "http://proxy.example.test:8080")
 
