@@ -1,6 +1,7 @@
 """Local-only target and mock HTTP proxies for safe development/testing."""
+import socket
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from threading import Thread
+from threading import Lock, Thread
 from urllib.parse import urlsplit
 from urllib.request import urlopen
 
@@ -10,6 +11,23 @@ from app.config import HOST, TARGET_HOSTNAME, TARGET_PORT, PROXY_PORTS
 class ReusableHTTPServer(ThreadingHTTPServer):
     allow_reuse_address = True
     daemon_threads = True
+
+
+_availability = {}
+_availability_lock = Lock()
+
+
+def set_mock_proxy_available(name: str, available: bool) -> None:
+    """Enable/disable a mock proxy for deterministic local failure tests."""
+    with _availability_lock:
+        if name not in _availability:
+            raise KeyError(f"Unknown mock proxy: {name}")
+        _availability[name] = available
+
+
+def _is_available(name: str) -> bool:
+    with _availability_lock:
+        return _availability.get(name, True)
 
 
 def _serve(server):
@@ -44,6 +62,8 @@ def start_target():
 def start_mock_proxy(port: int, name: str):
     """Forward only to the configured lab target; reject other destinations."""
     allowed_host = f"{TARGET_HOSTNAME}:{TARGET_PORT}"
+    with _availability_lock:
+        _availability[name] = True
 
     class ProxyHandler(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -64,6 +84,17 @@ def start_mock_proxy(port: int, name: str):
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
+                return
+
+            # Simulate a dead endpoint by dropping the connection, so the client
+            # experiences a transport error and the manager can exercise failover.
+            if not _is_available(name):
+                self.close_connection = True
+                try:
+                    self.connection.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+                self.connection.close()
                 return
 
             try:

@@ -8,7 +8,8 @@ A Python CLI project for learning proxy selection, health monitoring, failover, 
 - Health-aware round-robin selection and bounded failover.
 - SQLite persistence for proxy health state and request-attempt history.
 - Recovery cooldown: a proxy with repeated failures is temporarily excluded from health checks and requests, then rechecked after the cooldown expires.
-- Unit tests for selection, health state, persistence, and failover.
+- Unit tests for selection, health state, persistence, transport failover, and cooldown recovery.
+- A `demo-failover` command that simulates a mock proxy dropping connections and demonstrates automatic failover.
 - Python standard library only; no pip packages required.
 
 > Safety note: This is a learning lab. Mock proxies do not change your public IP address. Use the included localhost target until you configure an authorized proxy provider and approved destination. Do not use the project to evade access controls or rate limits.
@@ -23,6 +24,7 @@ A Python CLI project for learning proxy selection, health monitoring, failover, 
 
 ```powershell
 py -m app.main demo
+py -m app.main demo-failover
 py -m unittest discover -s tests -v
 ```
 
