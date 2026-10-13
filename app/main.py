@@ -1,5 +1,6 @@
 """CLI entry point."""
 import argparse
+import os
 import tempfile
 import time
 from pathlib import Path
@@ -147,7 +148,7 @@ def run_config_check():
     except ValueError as exc:
         raise SystemExit(f"Invalid proxy configuration: {exc}") from exc
 
-    using_local_defaults = "IPRM_PROXY_COUNT" not in __import__("os").environ
+    using_local_defaults = "IPRM_PROXY_COUNT" not in os.environ
     mode = "local mock defaults" if using_local_defaults else "environment configuration"
     print(f"Proxy configuration is valid ({mode}).")
     print("Credentials are configured only in environment variables and are not displayed.")
