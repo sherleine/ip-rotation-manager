@@ -18,7 +18,7 @@ class ProxyManager:
         return f"http://{TARGET_HOSTNAME}:{TARGET_PORT}"
 
     def refresh_health(self):
-        print("\\nHealth check:")
+        print("\nHealth check:")
         for proxy in self.proxies:
             ok = check_proxy(proxy)
             state = "HEALTHY" if ok else "UNHEALTHY"
@@ -85,7 +85,7 @@ class ProxyManager:
         )
 
     def print_summary(self):
-        print("\\nProxy summary")
+        print("\nProxy summary")
         print("-" * 72)
         print(f"{'Name':10} {'Status':12} {'Checks':>7} {'Success %':>10} {'Failures':>9}")
         for proxy in self.proxies:
@@ -95,5 +95,5 @@ class ProxyManager:
                 f"{proxy.success_rate:9.1f}% {proxy.consecutive_failures:9}"
             )
         successful = sum(1 for event in self.events if event.get("transport_ok"))
-        print(f"\\nRequests attempted: {self.request_number}")
+        print(f"\nRequests attempted: {self.request_number}")
         print(f"Successful transport attempts: {successful}")
