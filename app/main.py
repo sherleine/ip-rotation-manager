@@ -12,6 +12,7 @@ def run_demo():
     print("IP Rotation Manager — localhost demo")
     print("Only the included local test target is permitted by mock proxies.")
     servers = start_lab()
+    manager = None
     try:
         time.sleep(0.2)
         proxies = [
@@ -25,7 +26,10 @@ def run_demo():
             _status, body = manager.request("/")
             print(f"  Response body: {body[:100]}")
         manager.print_summary()
+        print("\nSQLite database: data/proxy_manager.sqlite3")
     finally:
+        if manager is not None:
+            manager.close()
         stop_lab(servers)
         print("\nLocal lab stopped.")
 
