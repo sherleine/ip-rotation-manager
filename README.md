@@ -8,7 +8,7 @@ A Python CLI project for learning proxy selection, health monitoring, failover, 
 - Health-aware round-robin selection and bounded failover.
 - SQLite persistence for proxy health state and request-attempt history.
 - Recovery cooldown: a proxy with repeated failures is temporarily excluded from health checks and requests, then rechecked after the cooldown expires.
-- CLI commands to inspect saved status, run active health checks, and review recent request attempts.
+- CLI commands to inspect saved status, run active health checks, review recent request attempts, and validate proxy configuration.
 - Unit tests for selection, health state, persistence, transport failover, and cooldown recovery.
 - A `demo-failover` command that simulates a mock proxy dropping connections and demonstrates automatic failover.
 - Python standard library only; no pip packages required.
@@ -39,9 +39,32 @@ py -m app.main health-check
 # Show the latest saved request attempts
 py -m app.main history
 
+# Validate proxy configuration (does not connect to proxies)
+py -m app.main config-check
+
 # Run all tests
 py -m unittest discover -s tests -v
 ```
+
+### Environment-based proxy configuration
+
+The new `config-check` command validates proxy settings without connecting to them. By default, it displays the three localhost mock proxies.
+
+To define one proxy in the current PowerShell session, set environment variables like these:
+
+```powershell
+$env:IPRM_PROXY_COUNT = "1"
+$env:IPRM_PROXY_1_HOST = "proxy.example.com"
+$env:IPRM_PROXY_1_PORT = "8080"
+$env:IPRM_PROXY_1_SCHEME = "http"
+$env:IPRM_PROXY_1_USERNAME = "your-username"
+$env:IPRM_PROXY_1_PASSWORD = "your-password"
+py -m app.main config-check
+```
+
+Use the actual host, port, and credentials supplied by a proxy provider you are authorized to use. Add more endpoints by setting `IPRM_PROXY_COUNT` and the matching numbered variables. Credentials are masked by `config-check` and are not added to the SQLite proxy-state table. Environment variables set this way last only for the current PowerShell session; do not commit credentials to Git.
+
+**Important:** this stage only prepares and validates configuration. The existing `demo`, `health-check`, and request routing commands still use the localhost lab. Provider connectivity and real exit-IP verification are separate future work.
 
 ### What the new commands mean
 
