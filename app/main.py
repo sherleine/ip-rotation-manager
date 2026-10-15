@@ -1,15 +1,17 @@
 """CLI entry point."""
 import argparse
 import os
+import re
 import tempfile
 import time
 from pathlib import Path
 
-from app.config import HOST, PROXY_PORTS
+from app.config import HOST, PROXY_PORTS, WEBDATA_EXPECT_TEXT, WEBDATA_TEST_URL
 from app.local_lab import start_lab, stop_lab, set_mock_proxy_available
 from app.manager import ProxyManager
 from app.models import ProxyState
 from app.proxy_config import load_proxy_definitions, masked_proxy_url
+from app.webdata_client import AccessBlockedError, WebDataError, fetch_html
 
 
 def _make_proxies():
@@ -157,15 +159,38 @@ def run_config_check():
     print("\nThis command validates configuration only; it does not connect to proxies.")
 
 
+def run_webdata_test(url, expect):
+    """Fetch ONE real page through the Web Data API and report what came back."""
+    print(f"Web Data API test fetch: {url}")
+    try:
+        html = fetch_html(url)
+    except AccessBlockedError as exc:
+        raise SystemExit(f"BLOCKED: {exc}") from exc
+    except WebDataError as exc:
+        raise SystemExit(f"FAILED: {exc}") from exc
+    title = re.search(r"<title[^>]*>(.*?)</title>", html, re.I | re.S)
+    matches = html.count(expect)
+    print(f"  HTML size:   {len(html):,} characters")
+    print(f"  Page title:  {title.group(1).strip() if title else '(none)'}")
+    print(f"  '{expect}' found {matches} time(s)")
+    if not matches:
+        raise SystemExit("RESULT: expected content not found - not real content. Do not run a full scrape.")
+    print("RESULT: real content came back. Safe to try a small run.")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Local IP rotation/proxy-management learning MVP"
     )
     parser.add_argument(
         "command",
-        choices=["demo", "demo-failover", "status", "health-check", "history", "config-check"],
-        help="Run a demo, inspect saved status/history, or actively check local mock proxies",
+        choices=["demo", "demo-failover", "status", "health-check", "history", "config-check", "webdata-test"],
+        help="Run a demo, inspect saved status/history, actively check local mock proxies, "
+             "or test one real page through the Web Data API",
     )
+    parser.add_argument("--url", default=WEBDATA_TEST_URL, help="webdata-test: page to fetch")
+    parser.add_argument("--expect", default=WEBDATA_EXPECT_TEXT,
+                        help="webdata-test: text that only appears in real content")
     args = parser.parse_args()
     if args.command == "demo":
         run_demo()
@@ -179,6 +204,8 @@ def main():
         run_history()
     elif args.command == "config-check":
         run_config_check()
+    elif args.command == "webdata-test":
+        run_webdata_test(args.url, args.expect)
 
 
 if __name__ == "__main__":

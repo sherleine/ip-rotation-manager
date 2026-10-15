@@ -11,3 +11,8 @@ MAX_CONSECUTIVE_FAILURES = 2
 MAX_RETRIES_PER_REQUEST = 3
 RECOVERY_COOLDOWN_SECONDS = 30
 DATABASE_PATH = "data/proxy_manager.sqlite3"
+
+# Web Data API smoke test (py -m app.main webdata-test): one real page, and a
+# string that only appears when real listing content came back.
+WEBDATA_TEST_URL = "https://clutch.co/developers/artificial-intelligence"
+WEBDATA_EXPECT_TEXT = "provider-list-item"

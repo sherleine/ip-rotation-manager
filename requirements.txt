@@ -1,1 +1,5 @@
-# The MVP uses only the Python standard library.
+# The proxy lab (py -m app.main) uses only the standard library.
+# The Clutch lead pipeline (py -m app.leads) needs:
+beautifulsoup4>=4.12,<5
+lxml>=5,<7
+openpyxl>=3.1,<4
